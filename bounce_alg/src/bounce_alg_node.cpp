@@ -68,21 +68,21 @@ private:
     // Open a text file to save the cloud points
     // std::ofstream output_file("/home/tomas-jelinek/obstacle_avoidance/cloudpoint_example/point_cloud_data.txt");
 
-    std::ofstream output_file("point_cloud_data.txt");
+    std::ofstream output_file("lidar_data/point_cloud_data.txt");
 
     if (output_file.is_open())
     {
       output_file << "X, Y, Z\n"; // Write the header for the file
 
       // Loop over the first few points (for example, the first 10)
-      for (size_t i = 0; i < msg->width * msg->height; ++i)
+      for (size_t i = 0; i < cloud->size(); ++i)
       {
         pcl::PointXYZ point = cloud->points[i];
         output_file << point.x << ", " << point.y << ", " << point.z << "\n"; // Write X, Y, Z to the file
       }
 
       output_file.close(); // Close the file
-      RCLCPP_INFO(this->get_logger(), "Saved %zu points to file.", std::min(cloud->size(), msg->width * msg->height));
+      RCLCPP_INFO(this->get_logger(), "Saved %zu points to file.", cloud->size());
     }
     else
     {

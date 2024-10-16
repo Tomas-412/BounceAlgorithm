@@ -1,5 +1,0 @@
-# config.yaml
-bounding_box_node:
-  ros__parameters:
-    linear_vel: 1.0
-    angular_vel: 0

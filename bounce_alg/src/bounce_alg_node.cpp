@@ -7,6 +7,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include <pcl/filters/extract_indices.h>
 #include <pcl_conversions/pcl_conversions.h>
 
 #include "rclcpp/rclcpp.hpp"
@@ -64,7 +65,13 @@ private:
 
     // debug part
     RCLCPP_INFO(this->get_logger(), "Received point cloud with %zu points", cloud->size());
+    saveCloudPointInFile(cloud);
 
+    
+  }
+
+  void saveCloudPointInFile(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
+  {
     // Open a text file to save the cloud points
     // std::ofstream output_file("/home/tomas-jelinek/obstacle_avoidance/cloudpoint_example/point_cloud_data.txt");
 
@@ -89,11 +96,39 @@ private:
       RCLCPP_ERROR(this->get_logger(), "Failed to open file for writing.");
     }
   }
+  
+  // Function to filter out ground points based on Z coordinate
+pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr& input_cloud, float lidar_height, float ground_threshold = 0.05)
+{
+    // Create a new point cloud to hold the filtered data
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
+    // Loop through the input point cloud
+    for (const auto& point : input_cloud->points)
+    {
+        // Check if the point is above the ground level
+        if (point.z > -lidar_height + ground_threshold)
+        {
+            // If above the ground, keep the point
+            filtered_cloud->points.push_back(point);
+        }
+    }
+
+    // Set the filtered cloud's width and height
+    filtered_cloud->width = filtered_cloud->points.size();
+    filtered_cloud->height = 1; // Unstructured point cloud
+    filtered_cloud->is_dense = true;
+
+    return filtered_cloud;
+}
+  
+  
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
+
+
 
 int main(int argc, char *argv[])
 {

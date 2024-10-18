@@ -13,6 +13,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(pcl_conversions REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 include_directories(${PCL_INCLUDE_DIRS}
                     ${pcl_conversions_INCLUDE_DIRS}
@@ -31,10 +32,11 @@ target_link_libraries(bounce_alg_node
 
 ament_target_dependencies(bounce_alg_node
   rclcpp
+  PCL
   std_msgs
   geometry_msgs
   sensor_msgs
-  PCL)
+  visualization_msgs)
 
 # Install target
 install(TARGETS

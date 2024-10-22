@@ -22,7 +22,10 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 # Add the executable
-add_executable(bounce_alg_node src/bounce_alg_node.cpp)
+add_executable(bounce_alg_node 
+src/bounce_alg_node.cpp 
+src/velocity_controller.hpp
+src/point_cloud_processor.hpp)
 
 # Link against the required libraries
 target_link_libraries(bounce_alg_node 

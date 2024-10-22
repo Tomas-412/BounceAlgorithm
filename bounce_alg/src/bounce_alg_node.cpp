@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 #include <fstream> // for file operations
-#include <limits> // for std::numeric_limits
-#include <cmath>  // for std::sqrt
+#include <limits>  // for std::numeric_limits
+#include <cmath>   // for std::sqrt
 #include <utility> // for std::pair
 
 #include <pcl/point_types.h>
@@ -18,7 +18,9 @@
 #include "geometry_msgs/msg/twist.hpp" // Message type for velocity command
 #include <geometry_msgs/msg/point_stamped.hpp>
 
-
+//Custom classes
+#include "velocity_controller.hpp"
+#include "point_cloud_processor.hpp"
 
 using namespace std::chrono_literals;
 
@@ -30,9 +32,18 @@ class BounceAlgorithmNode : public rclcpp::Node
 public:
   BounceAlgorithmNode() : Node("bounce_alg")
   {
+    // Initialize the PointCloudProcessor
+    point_cloud_processor_ = std::make_shared<PointCloudProcessor>();
+
+
+    // Initialize the VelocityController with relevant thresholds and gains
+    velocity_controller_ = std::make_shared<VelocityController>(
+        1, 1.5, 0.9);
+        //stop_thresh, slow_thresh, obstacle_zone_y
+
     // Declare parameters with default values
-    this->declare_parameter<double>("linear_vel", 1);
-    this->declare_parameter<double>("angular_vel", 0);
+    this->declare_parameter<double>("linear_vel", 1.5);
+    this->declare_parameter<double>("angular_vel", 1);
 
     // Create a subscriber on the /a200_0000/sensors/lidar3d_0/points topic
     point_cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -55,30 +66,17 @@ public:
 private:
   void publishVelocity()
   {
-    // By default the velocity is 0
-    double linear_vel = 0;
-    double angular_vel = 0;
 
-    // Debug, if the shared variables are working
-    RCLCPP_INFO(this->get_logger(), "DISTANCE = %f",nearestPointDistance);
+    // Process the point cloud and find the nearest point (filtered cloud without ground)
+    // Assuming nearestPoint and nearestPointDistance have been calculated
 
-    // If the nearest object is closer than 1 meter and it is in front of the robot and max 1.5 meter to the sides
-    if(nearestPointDistance < 1 and nearestPoint.x > 0 and abs(nearestPoint.y) < 1.5)
-    {
-      // The robot will stop and turn to the right if the obstacle is on the left side and vice versa
-      if(nearestPoint.y > 0) angular_vel = -0.5;
-      else angular_vel = 0.5;
-    }
-    else // If the object is further than one meter the robot goes based on the parameters
-    {
-      this->get_parameter("linear_vel", linear_vel);
-      this->get_parameter("angular_vel", angular_vel);
-    }
+    double linear_vel_param, angular_vel_param;
+    this->get_parameter("linear_vel", linear_vel_param);
+    this->get_parameter("angular_vel", angular_vel_param);
 
-    auto message = geometry_msgs::msg::Twist();
-    // Set the linear and angular velocity based on the parameters 
-    message.linear.x = linear_vel;   
-    message.angular.z = angular_vel;
+    // Use the VelocityController to compute the velocity command
+    geometry_msgs::msg::Twist message = velocity_controller_->calculateVelocity(
+      nearest_point_distance_, nearest_point_, linear_vel_param, angular_vel_param);
 
 
     RCLCPP_INFO(this->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", message.linear.x, message.angular.z);
@@ -90,15 +88,12 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*msg, *cloud);
 
-    // debug part
-    //RCLCPP_INFO(this->get_logger(), "Received point cloud with %zu points", cloud->size());
-
     // Save Cloud point in a file if needed
-    // saveCloudPointInFile(cloud);
+    // point_cloud_processor_->saveCloudPointInFile(cloud);
 
     // Filter out the ground plane
     float lidar_height = 0.28; // Example height of the LiDAR (in meters)
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = filterGroundPlane(cloud, lidar_height);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundPlane(cloud, lidar_height);
 
     // Convert the filtered cloud to a ROS message
     sensor_msgs::msg::PointCloud2 outputCloud_msg;
@@ -109,32 +104,27 @@ private:
     filtered_cloud_pub->publish(outputCloud_msg);
 
     // debug part
-    //RCLCPP_INFO(this->get_logger(), "Filtered point cloud with %zu points", filtered_cloud->size());
+    // RCLCPP_INFO(this->get_logger(), "Filtered point cloud with %zu points", filtered_cloud->size());
 
     // Get the nearest point and its distance
-    auto nearest_point_and_distance = getNearestPoint(filtered_cloud);
-    nearestPoint = nearest_point_and_distance.first;
-    nearestPointDistance = nearest_point_and_distance.second;
-
-    // Print the nearest point's coordinates and the distance
-    RCLCPP_INFO(this->get_logger(), "Nearest point: X = %f, Y = %f, Z = %f, Distance = %f", 
-                nearestPoint.x, nearestPoint.y, nearestPoint.z, nearestPointDistance);
-
+    auto nearest_point_and_distance = point_cloud_processor_->getNearestPoint(filtered_cloud);
+    nearest_point_ = nearest_point_and_distance.first;
+    nearest_point_distance_ = nearest_point_and_distance.second;
 
     // Create a PointStamped message for the nearest point
     geometry_msgs::msg::PointStamped point_msg;
     point_msg.header = msg->header; // Maintain the same header for time and frame
-    
+
     // Set the coordinates of the point
-    point_msg.point.x = nearestPoint.x;
-    point_msg.point.y = nearestPoint.y;
-    point_msg.point.z = nearestPoint.z;
+    point_msg.point.x = nearest_point_.x;
+    point_msg.point.y = nearest_point_.y;
+    point_msg.point.z = nearest_point_.z;
 
     // Publish the point
     nearest_point_pub->publish(point_msg);
   }
 
-  void saveCloudPointInFile(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
+  /* void saveCloudPointInFile(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
   {
     // Open a text file to save the cloud points
     // std::ofstream output_file("/home/tomas-jelinek/obstacle_avoidance/cloudpoint_example/point_cloud_data.txt");
@@ -167,17 +157,17 @@ private:
     float min_distance = std::numeric_limits<float>::max();
 
     // Iterate through each point in the cloud
-    for (const auto& point : cloud->points)
+    for (const auto &point : cloud->points)
     {
-        // Calculate the Euclidean distance from the origin (0, 0, 0)
-        float distance = std::sqrt(pow(point.x, 2) + pow(point.y, 2) + pow(point.z, 2));
+      // Calculate the Euclidean distance from the origin (0, 0, 0)
+      float distance = std::sqrt(pow(point.x, 2) + pow(point.y, 2) + pow(point.z, 2));
 
-        // If this point is closer, store it as the nearest point
-        if (distance < min_distance)
-        {
-            min_distance = distance;
-            nearest_point = point;
-        }
+      // If this point is closer, store it as the nearest point
+      if (distance < min_distance)
+      {
+        min_distance = distance;
+        nearest_point = point;
+      }
     }
 
     // Return both the nearest point and its distance
@@ -207,11 +197,15 @@ private:
     filtered_cloud->is_dense = true;
 
     return filtered_cloud;
-  }
+  } */
 
-  // Shared variables 
-  float nearestPointDistance; 
-  pcl::PointXYZ nearestPoint;
+  // Custom classes
+  std::shared_ptr<VelocityController> velocity_controller_; // Instance of the new VelocityController class
+  std::shared_ptr<PointCloudProcessor> point_cloud_processor_; // Instance of the new PointCloudProcessor class
+
+  // Shared variables
+  float nearest_point_distance_;
+  pcl::PointXYZ nearest_point_;
 
   // Subscriber for LiDAR 3D cloud points
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;

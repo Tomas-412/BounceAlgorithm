@@ -22,7 +22,7 @@
 
 3. Launch the node:
 
-```ros2 launch bounce_alg bounce_alg_node.launch.py```
+```ros2 launch bounce_alg bounce_alg_launch.py```
 
 # Parameters
 

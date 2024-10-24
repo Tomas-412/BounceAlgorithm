@@ -42,12 +42,15 @@ public:
         //stop_thresh, slow_thresh, obstacle_zone_y
 
     // Declare parameters with default values
-    this->declare_parameter<double>("linear_vel", 1.5);
+    this->declare_parameter<double>("linear_vel", 1);
     this->declare_parameter<double>("angular_vel", 1);
+
+    //auto LidarTopic = "/a200_0000/sensors/lidar3d_0/points";
+    auto LidarTopic = "/velodyne_points";
 
     // Create a subscriber on the /a200_0000/sensors/lidar3d_0/points topic
     point_cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/a200_0000/sensors/lidar3d_0/points", 10,
+        LidarTopic, 10,
         std::bind(&BounceAlgorithmNode::pointCloudCallback, this, std::placeholders::_1));
 
     // Initialize the publisher on the /a200_0000/cmd_vel topic, sending geometry_msgs/Twist messages
@@ -80,7 +83,7 @@ private:
 
 
     RCLCPP_INFO(this->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", message.linear.x, message.angular.z);
-    velocity_pub_->publish(message); // Publish the velocity command
+    //velocity_pub_->publish(message); // Publish the velocity command
   }
 
   void pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
@@ -93,7 +96,9 @@ private:
 
     // Filter out the ground plane
     float lidar_height = 0.28; // Example height of the LiDAR (in meters)
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundPlane(cloud, lidar_height);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundHPlane(cloud, lidar_height);
+
+    //pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundPlane(cloud);
 
     // Convert the filtered cloud to a ROS message
     sensor_msgs::msg::PointCloud2 outputCloud_msg;
@@ -103,8 +108,6 @@ private:
     // Publish the filtered point cloud
     filtered_cloud_pub->publish(outputCloud_msg);
 
-    // debug part
-    // RCLCPP_INFO(this->get_logger(), "Filtered point cloud with %zu points", filtered_cloud->size());
 
     // Get the nearest point and its distance
     auto nearest_point_and_distance = point_cloud_processor_->getNearestPoint(filtered_cloud);
@@ -124,80 +127,6 @@ private:
     nearest_point_pub->publish(point_msg);
   }
 
-  /* void saveCloudPointInFile(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
-  {
-    // Open a text file to save the cloud points
-    // std::ofstream output_file("/home/tomas-jelinek/obstacle_avoidance/cloudpoint_example/point_cloud_data.txt");
-
-    std::ofstream output_file("lidar_data/point_cloud_data.txt");
-
-    if (output_file.is_open())
-    {
-      output_file << "X, Y, Z\n"; // Write the header for the file
-
-      // Loop over the first few points (for example, the first 10)
-      for (size_t i = 0; i < cloud->size(); ++i)
-      {
-        pcl::PointXYZ point = cloud->points[i];
-        output_file << point.x << ", " << point.y << ", " << point.z << "\n"; // Write X, Y, Z to the file
-      }
-
-      output_file.close(); // Close the file
-      RCLCPP_INFO(this->get_logger(), "Saved %zu points to file.", cloud->size());
-    }
-    else
-    {
-      RCLCPP_ERROR(this->get_logger(), "Failed to open file for writing.");
-    }
-  }
-
-  std::pair<pcl::PointXYZ, float> getNearestPoint(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud)
-  {
-    pcl::PointXYZ nearest_point;
-    float min_distance = std::numeric_limits<float>::max();
-
-    // Iterate through each point in the cloud
-    for (const auto &point : cloud->points)
-    {
-      // Calculate the Euclidean distance from the origin (0, 0, 0)
-      float distance = std::sqrt(pow(point.x, 2) + pow(point.y, 2) + pow(point.z, 2));
-
-      // If this point is closer, store it as the nearest point
-      if (distance < min_distance)
-      {
-        min_distance = distance;
-        nearest_point = point;
-      }
-    }
-
-    // Return both the nearest point and its distance
-    return std::make_pair(nearest_point, min_distance);
-  }
-
-  // Function to filter out ground points based on Z coordinate
-  pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float lidar_height, float ground_threshold = 0.1)
-  {
-    // Create a new point cloud to hold the filtered data
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-    // Loop through the input point cloud
-    for (const auto &point : input_cloud->points)
-    {
-      // Check if the point is above the ground level
-      if (point.z > -lidar_height + ground_threshold)
-      {
-        // If above the ground, keep the point
-        filtered_cloud->points.push_back(point);
-      }
-    }
-
-    // Set the filtered cloud's width and height
-    filtered_cloud->width = filtered_cloud->points.size();
-    filtered_cloud->height = 1; // Unstructured point cloud
-    filtered_cloud->is_dense = true;
-
-    return filtered_cloud;
-  } */
 
   // Custom classes
   std::shared_ptr<VelocityController> velocity_controller_; // Instance of the new VelocityController class

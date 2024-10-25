@@ -1,5 +1,8 @@
 # config.yaml
-bounding_box_node:
+bounce_alg_node:
   ros__parameters:
     linear_vel: 1.0
-    angular_vel: 0
+    angular_vel: 1.0
+    ground_tolerance: 0.25
+    ground_treshold: 0.04
+    simulation: false

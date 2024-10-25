@@ -68,7 +68,7 @@ public:
     }
 
     // Function to filter ground points based on Z coordinate
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundHPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float lidar_height, float ground_threshold = 0.05)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundHPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float lidar_height, float grnd_threshold = 0.05)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -76,7 +76,7 @@ public:
         for (const auto &point : input_cloud->points)
         {
             // Check if the point is above the ground level
-            if (point.z > -lidar_height + ground_threshold || point.z < -lidar_height - ground_threshold)
+            if (point.z > -lidar_height + ground_threshold || point.z < -lidar_height - grnd_threshold)
             {
                 filtered_cloud->points.push_back(point); // If above the ground, keep the point
             }
@@ -91,11 +91,11 @@ public:
     }
 
     // Function to filter ground points based on 3 point angle and plane fitting
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float tolerance, float treshold)
     {
         // Create the GroundPlaneFilter object with desired parameters
-        tolerance = 0.1f;         // Dot product tolerance
-        ground_threshold = 0.04f; // Distance threshold for ground filtering
+        ground_tolerance = tolerance;         // Dot product ground_tolerance
+        ground_threshold = treshold; // Distance threshold for ground filtering
 
         // Step 1: Estimate initial ground points using dot product analysis
         pcl::PointCloud<pcl::PointXYZ>::Ptr ground_points = estimateGroundPoints(input_cloud);
@@ -119,8 +119,9 @@ private:
         // Compute dot product
         float dotProduct = vector1.dot(vector2) / (vector1.norm() * vector2.norm());
 
+
         // Check if the dot product is close to 1 (indicating points lie on a flat surface)
-        return std::fabs(dotProduct - 1.0) < tolerance;
+        return std::fabs(dotProduct - 1.0) < ground_tolerance;
     }
 
     // Step 1: Estimate ground points using dot product
@@ -195,7 +196,7 @@ private:
         return filtered_cloud;
     }
 
-    float tolerance;
+    float ground_tolerance;
     float ground_threshold;
 };
 

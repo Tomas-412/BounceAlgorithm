@@ -42,11 +42,23 @@ public:
         //stop_thresh, slow_thresh, obstacle_zone_y
 
     // Declare parameters with default values
-    this->declare_parameter<double>("linear_vel", 1);
-    this->declare_parameter<double>("angular_vel", 1);
+    this->declare_parameter<double>("linear_vel");           // cmd_vel robot cotrol
+    this->declare_parameter<double>("angular_vel");
 
-    //auto LidarTopic = "/a200_0000/sensors/lidar3d_0/points";
-    auto LidarTopic = "/velodyne_points";
+    this->declare_parameter<float>("ground_tolerance");  // filter ground plane parameters 
+    this->declare_parameter<float>("ground_treshold");
+
+    this->declare_parameter<bool>("simulation");        // switch easily between simulated and real environment
+    
+    
+    
+    // Set topics accordingly based on if it is simulation
+    auto LidarTopic = "";
+    bool simulation;
+    this->get_parameter("simulation", simulation);
+
+    if(simulation) {LidarTopic = "/a200_0000/sensors/lidar3d_0/points";}
+    else           {LidarTopic = "/velodyne_points";}
 
     // Create a subscriber on the /a200_0000/sensors/lidar3d_0/points topic
     point_cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -95,10 +107,13 @@ private:
     // point_cloud_processor_->saveCloudPointInFile(cloud);
 
     // Filter out the ground plane
-    float lidar_height = 0.28; // Example height of the LiDAR (in meters)
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundHPlane(cloud, lidar_height);
+    // float lidar_height = 0.28; // Example height of the LiDAR (in meters)
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundHPlane(cloud, lidar_height);
 
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundPlane(cloud);
+    float tolerance, treshold;
+    this->get_parameter("ground_tolerance", tolerance);
+    this->get_parameter("ground_treshold", treshold);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundPlane(cloud, tolerance, treshold);
 
     // Convert the filtered cloud to a ROS message
     sensor_msgs::msg::PointCloud2 outputCloud_msg;

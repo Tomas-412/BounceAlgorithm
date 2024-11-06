@@ -1,9 +1,21 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0" version="24.8.4">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0" modified="2024-11-06T04:24:33.080Z" version="21.3.7" etag="A3pRMFnmryPMt8dLZwUz" type="github">
   <diagram name="Page-1" id="E0VfqSVLPjCuIODD2h_E">
-    <mxGraphModel>
+    <mxGraphModel dx="996" dy="569" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="LKBw2yt8oLMq0MdAjzAp-1" value="Bounce Algorithm" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="480" width="300" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="LKBw2yt8oLMq0MdAjzAp-2" value="Gazebo Simulation" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="480" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="LKBw2yt8oLMq0MdAjzAp-3" value="Robot Jackal Controller" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="510" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="LKBw2yt8oLMq0MdAjzAp-4" value="3D LiDAR docker" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="730" width="200" height="200" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

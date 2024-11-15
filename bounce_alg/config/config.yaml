@@ -2,7 +2,10 @@
 bounce_alg_node:
   ros__parameters:
     linear_vel: 1.0
-    angular_vel: 1.0
-    ground_tolerance: 0.25
-    ground_treshold: 0.04
-    simulation: false
+    angular_vel: 0.4
+    ground_tolerance: 0.05
+    ground_treshold: 0.05
+    slow_threshold: 1.2
+    stop_threshold: 1.1
+    obstacle_zone_y: 1.
+    simulation: true

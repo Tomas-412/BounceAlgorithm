@@ -30,13 +30,15 @@ public:
         {
             // Slow down and adjust direction
             linear_vel = linear_vel_param * (nearestPointDistance / slow_threshold_);
-            angular_vel = -0.2 * (obstacle_zone_y_ / nearestPoint.y); // Proportional steering
+            angular_vel = -angular_vel_param * 0.5 * (nearestPoint.y / slow_threshold_); // Proportional steering
         }
         else
         {
             // No critical obstacle, proceed with default parameters
             linear_vel = linear_vel_param;
         }
+
+        // if (angular_vel > angular_vel_param) {angular_vel = angular_vel_param}
 
         // Set velocities in the Twist message
         cmd_vel.linear.x = linear_vel;

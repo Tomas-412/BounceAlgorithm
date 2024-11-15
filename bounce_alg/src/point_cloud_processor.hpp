@@ -53,7 +53,7 @@ public:
         for (const auto &point : cloud->points)
         {
             // Calculate the Euclidean distance from the origin (0, 0, 0)
-            float distance = std::sqrt(pow(point.x, 2) + pow(point.y, 2) + pow(point.z, 2));
+            float distance = std::sqrt(pow(point.x, 2) + pow(point.y, 2));
 
             // If this point is closer, store it as the nearest point
             if (distance < min_distance)
@@ -67,8 +67,33 @@ public:
         return std::make_pair(nearest_point, min_distance);
     }
 
-    // Function to filter ground points based on Z coordinate
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundHPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float lidar_height, float grnd_threshold = 0.05)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr getFirst16Points(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud)
+    {
+        // Create a new point cloud to store the first 16 points
+        pcl::PointCloud<pcl::PointXYZ>::Ptr first_16_points(new pcl::PointCloud<pcl::PointXYZ>);
+
+        auto hor_angle = 360 / 0.4;
+
+        for (size_t h = 0; h < 500; h = h + 100)
+        {
+            for (size_t v = 0; v < 16 - 2; ++v) // Loop through each vertical column of points
+            {
+                // Fetch the points in the vertical scan for each horizontal angle
+                pcl::PointXYZ point1 = input_cloud->points[hor_angle * v + h];
+                pcl::PointXYZ point2 = input_cloud->points[hor_angle * (v + 1) + h];
+                pcl::PointXYZ point3 = input_cloud->points[hor_angle * (v + 1) + h];
+
+                first_16_points->points.push_back(point1);
+                first_16_points->points.push_back(point2);
+                first_16_points->points.push_back(point3);
+            }
+        }
+
+        return first_16_points;
+    }
+
+    // Function to filter points above the robot based on Z coordinate
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filterPointsAbove(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float height_tolerance = 0.2)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -76,7 +101,7 @@ public:
         for (const auto &point : input_cloud->points)
         {
             // Check if the point is above the ground level
-            if (point.z > -lidar_height + ground_threshold || point.z < -lidar_height - grnd_threshold)
+            if (point.z < height_tolerance)
             {
                 filtered_cloud->points.push_back(point); // If above the ground, keep the point
             }
@@ -94,8 +119,8 @@ public:
     pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float tolerance, float treshold)
     {
         // Create the GroundPlaneFilter object with desired parameters
-        ground_tolerance = tolerance;         // Dot product ground_tolerance
-        ground_threshold = treshold; // Distance threshold for ground filtering
+        ground_tolerance = tolerance; // Dot product ground_tolerance
+        ground_threshold = treshold;  // Distance threshold for ground filtering
 
         // Step 1: Estimate initial ground points using dot product analysis
         pcl::PointCloud<pcl::PointXYZ>::Ptr ground_points = estimateGroundPoints(input_cloud);
@@ -119,9 +144,8 @@ private:
         // Compute dot product
         float dotProduct = vector1.dot(vector2) / (vector1.norm() * vector2.norm());
 
-
         // Check if the dot product is close to 1 (indicating points lie on a flat surface)
-        return std::fabs(dotProduct - 1.0) < ground_tolerance;
+        return std::fabs(dotProduct - 1.0) < ground_tolerance && abs(point1.z - point2.z) < 0.015W;
     }
 
     // Step 1: Estimate ground points using dot product
@@ -129,15 +153,36 @@ private:
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr ground_points(new pcl::PointCloud<pcl::PointXYZ>);
 
-        for (size_t i = 0; i < input_cloud->points.size() - 2; i++)
+        auto hor_angle = 360 / 0.4;
+
+        for (size_t h = 0; h < hor_angle; h++)
         {
-            if (isGroundPoint(input_cloud->points[i], input_cloud->points[i + 1], input_cloud->points[i + 2]))
+            for (size_t v = 0; v < 16 - 2; ++v) // Loop through each vertical column of points
             {
-                ground_points->points.push_back(input_cloud->points[i]);
-                ground_points->points.push_back(input_cloud->points[i + 1]);
-                ground_points->points.push_back(input_cloud->points[i + 2]);
+                // Fetch the points in the vertical scan for each horizontal angle
+                pcl::PointXYZ point1 = input_cloud->points[hor_angle * v + h];
+                pcl::PointXYZ point2 = input_cloud->points[hor_angle * (v + 1) + h];
+                pcl::PointXYZ point3 = input_cloud->points[hor_angle * (v + 2) + h];
+
+                if (isGroundPoint(point1, point2, point3))
+                {
+                    ground_points->points.push_back(point1);
+                    ground_points->points.push_back(point2);
+                    ground_points->points.push_back(point3);
+                }
+                else {break;}
             }
         }
+
+        // for (size_t i = 0; i < input_cloud->points.size() - 2; i++)
+        // {
+        //     if (isGroundPoint(input_cloud->points[i], input_cloud->points[i + 1], input_cloud->points[i + 2]))
+        //     {
+        //         ground_points->points.push_back(input_cloud->points[i]);
+        //         ground_points->points.push_back(input_cloud->points[i + 1]);
+        //         ground_points->points.push_back(input_cloud->points[i + 2]);
+        //     }
+        // }
 
         return ground_points;
     }
@@ -169,7 +214,7 @@ private:
         float d = coefficients->values[3];
 
         // Compute the distance from the point to the plane
-        float distance = std::fabs(a * point.x + b * point.y + c * point.z + d) / std::sqrt(pow(a,2) + pow(b,2) + pow(c,2));
+        float distance = std::fabs(a * point.x + b * point.y + c * point.z + d) / std::sqrt(pow(a, 2) + pow(b, 2) + pow(c, 2));
         return distance;
     }
 

@@ -38,6 +38,8 @@ public:
 
     this->declare_parameter<double>("linear_vel"); // cmd_vel robot cotrol
     this->declare_parameter<double>("angular_vel");
+    //cc
+  
 
     this->declare_parameter<float>("slow_threshold"); // obstacle avoidance parameters
     this->declare_parameter<float>("stop_threshold");

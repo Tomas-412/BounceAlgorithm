@@ -12,6 +12,6 @@ bounce_alg_node:
     stop_threshold:     2.5
     obstacle_zone_y:    2.0
     #transform point cloud from LiDAR to robot
-    translation:          [0.2, 0.0, -0.2]
+    translation:          [0.15, 0.0, -0.262]
     #simulation bool
     simulation:         false

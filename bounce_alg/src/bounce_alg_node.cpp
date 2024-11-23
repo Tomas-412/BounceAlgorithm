@@ -48,6 +48,7 @@ public:
     this->declare_parameter<float>("ground_tolerance"); // filter ground plane parameters
     this->declare_parameter<float>("ground_treshold");
 
+    this->declare_parameter<std::vector<double>>("translation"); // translate point cloud from LiDAR to robot
 
     this->declare_parameter<bool>("simulation"); // switch easily between simulated and real environment
 
@@ -78,10 +79,9 @@ public:
 
     auto LidarTopic = "";
     auto VelocityTopic = "";
-    bool simulation;
-    this->get_parameter("simulation", simulation);
+    this->get_parameter("simulation", simulation_);
 
-    if (simulation)
+    if (simulation_)
     {
       LidarTopic = "/a200_0000/sensors/lidar3d_0/points";
       VelocityTopic = "/a200_0000/cmd_vel";
@@ -127,6 +127,7 @@ private:
     // Process the point cloud and find the nearest point (filtered cloud without ground)
     // Assuming nearestPoint and nearestPointDistance have been calculated
 
+    
     double linear_vel_param, angular_vel_param;
     this->get_parameter("linear_vel", linear_vel_param);
     this->get_parameter("angular_vel", angular_vel_param);
@@ -151,17 +152,32 @@ private:
       return;
     }
 
-    // Save Cloud point in a file if needed
-    // point_cloud_processor_->saveCloudPointInFile(cloud);
+    // Parameters for the real robot obstacle avoidance
+    std::vector<double> translation;
+    this->get_parameter("translation", translation);
+    // Translate the LiDAR point cloud
+    if (!simulation_)
+    {
+      // Translate the point cloud by (0.2, 0.0, -0.2)
+      cloud = point_cloud_processor_->translatePointCloud(cloud, translation[0], translation[1], translation[2]);
+    }
+    
 
-    // Filter out the ground plane
+    // Save Cloud point in a file if needed
+    //point_cloud_processor_->saveCloudPointInFile(cloud, this->get_logger());
+    
+    // Parameters for the ground filtration
     float tolerance, treshold;
     this->get_parameter("ground_tolerance", tolerance);
     this->get_parameter("ground_treshold", treshold);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundPlane(cloud, tolerance, treshold);
+    
+    // Filter out the ground plane
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud = point_cloud_processor_->filterGroundPlane(cloud, tolerance, treshold, simulation_);
 
-    // Filter points above the robot so it can pass under an obstacle (default 20 cm)
-    filtered_cloud = point_cloud_processor_->filterPointsAbove(filtered_cloud, 0.2);
+    // Filter points above the robot so it can pass under an obstacle (default 20 cm) and substracted the translation parameter for the real robot
+    float above_filtration = 0.2;
+    if (!simulation_) {above_filtration = above_filtration - translation[2];}
+    filtered_cloud = point_cloud_processor_->filterPointsAbove(filtered_cloud, above_filtration); 
 
     // Convert the filtered cloud to a ROS message
     sensor_msgs::msg::PointCloud2 outputCloud_msg;
@@ -189,7 +205,7 @@ private:
     nearest_point_pub->publish(point_msg);
 
     // Get the first 16 points from the cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr first_16_points = point_cloud_processor_->getFirst16Points(cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr first_16_points = point_cloud_processor_->getFirst16Points(cloud, simulation_);
 
     // Visualize the first 16 points in RViz
     publishFirst16Points(first_16_points, msg->header);
@@ -213,6 +229,7 @@ private:
   // Shared variables
   float nearest_point_distance_;
   pcl::PointXYZ nearest_point_;
+  bool simulation_;
 
   // Subscriber for LiDAR 3D cloud points
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;

@@ -1,11 +1,17 @@
 # config.yaml
 bounce_alg_node:
   ros__parameters:
-    linear_vel: 1.0
-    angular_vel: 0.4
-    ground_tolerance: 0.05
-    ground_treshold: 0.05
-    slow_threshold: 1.2
-    stop_threshold: 1.1
-    obstacle_zone_y: 1.
-    simulation: true
+    #velocity
+    linear_vel:         0.1
+    angular_vel:        0.4
+    #ground filtration
+    ground_tolerance:   0.3
+    ground_treshold:    0.07
+    #obstacle avoidance
+    slow_threshold:     1.2
+    stop_threshold:     2.5
+    obstacle_zone_y:    2.0
+    #transform point cloud from LiDAR to robot
+    translation:          [0.2, 0.0, -0.2]
+    #simulation bool
+    simulation:         false

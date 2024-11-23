@@ -21,7 +21,8 @@ public:
         double linear_vel = 0.0;
         double angular_vel = 0.0;
 
-        if (nearestPointDistance < stop_threshold_ && nearestPoint.x > 0 && abs(nearestPoint.y) < obstacle_zone_y_)
+        if (nearestPointDistance < 1.5) {}
+        else if (nearestPointDistance < stop_threshold_ && nearestPoint.x > 0 && abs(nearestPoint.y) < obstacle_zone_y_)
         {
             // Stop and turn
             angular_vel = (nearestPoint.y > 0) ? -angular_vel_param : angular_vel_param; // Turn right if obstacle on the left, and vice versa

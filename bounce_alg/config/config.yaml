@@ -9,6 +9,7 @@ bounce_alg_node:
     ground_tolerance:   0.1
     ground_treshold:    0.07
     #obstacle avoidance
+    above_filtration:   0.2
     slow_threshold:     1.2
     stop_threshold:     2.5
     obstacle_zone_y:    2.0

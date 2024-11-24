@@ -2,9 +2,10 @@
 bounce_alg_node:
   ros__parameters:
     #velocity
-    linear_vel:         0.1
+    linear_vel:         0.2
     angular_vel:        0.4
     #ground filtration
+    ground_elevation:   0.09
     ground_tolerance:   0.3
     ground_treshold:    0.07
     #obstacle avoidance

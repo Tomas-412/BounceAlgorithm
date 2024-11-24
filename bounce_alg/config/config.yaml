@@ -5,8 +5,8 @@ bounce_alg_node:
     linear_vel:         0.2
     angular_vel:        0.4
     #ground filtration
-    ground_elevation:   0.09
-    ground_tolerance:   0.3
+    ground_elevation:   0.1
+    ground_tolerance:   0.1
     ground_treshold:    0.07
     #obstacle avoidance
     slow_threshold:     1.2

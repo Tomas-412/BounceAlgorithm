@@ -51,10 +51,10 @@ The package parameters are configurable in the `config.yaml` file. Here are the 
 - **obstacle_zone_y**: Lateral distance used to bound obstacle zones [default: `2.0` m]  
 
 ### Transformation  
-- **translation**: Transformation vector for aligning LiDAR data to the robot frame [default: `[0.15, 0.0, -0.262]`]  
+- **translation**: Transformation vector for aligning LiDAR data to the robot frame (used only with the real robot) [default: `[0.15, 0.0, -0.262]`]  
 
 ### Simulation Mode  
-- **simulation**: Boolean flag to switch between simulation and real-world operation [default: `false`]  
+- **simulation**: Boolean flag to switch between simulation and real-world operation [`true` or `false`]  
 
 ## Further Customization  
 This algorithm can be extended for more complex behaviors such as path planning or integration with different LiDAR configurations. While it currently uses a simple "bounce" mechanism for obstacle avoidance, it provides a foundation for implementing more advanced navigation techniques.  

@@ -17,7 +17,11 @@
 class PointCloudProcessor
 {
 public:
-    PointCloudProcessor() = default;
+    PointCloudProcessor(
+        float ground_elevation, float ground_tolerance, float ground_threshold
+        bool simulation)
+        : ground_elevation_(ground_elevation), ground_tolerance_(ground_tolerance), ground_threshold_(ground_threshold), 
+        simulation_(simulation) {}
 
     // Function to save cloud points in a file
     void saveCloudPointInFile(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const rclcpp::Logger &logger)
@@ -68,14 +72,14 @@ public:
         return std::make_pair(nearest_point, min_distance);
     }
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr getFirst16Points(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, bool simulation)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr getFirst16Points(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud)
     {
         // Create a new point cloud to store the first 16 points
         pcl::PointCloud<pcl::PointXYZ>::Ptr first_16_points(new pcl::PointCloud<pcl::PointXYZ>);
 
         auto rings = 16;
 
-        if (simulation)
+        if (simulation_)
         {
             auto points_ring = 360 / 0.4;
             for (auto h = 0; h < points_ring; h = h + 100)
@@ -155,15 +159,12 @@ public:
     }
 
     // Function to filter ground points based on 3 point angle and plane fitting
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float tolerance, float treshold, bool simulation)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filterGroundPlane(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud)
     {
-        // Create the GroundPlaneFilter object with desired parameters
-        ground_tolerance = tolerance; // Dot product ground_tolerance
-        ground_threshold = treshold;  // Distance threshold for ground filtering
-
         // Step 1: Estimate initial ground points using dot product analysis
         pcl::PointCloud<pcl::PointXYZ>::Ptr ground_points;
-        if (simulation)
+        
+        if (simulation_)
         {
             ground_points = estimateGroundPoints_sim(input_cloud);
         }
@@ -171,11 +172,6 @@ public:
         {
             ground_points = estimateGroundPoints_real(input_cloud);
         }
-
-        // if (ground_points->points.empty()) {
-        //     std::cerr << "Error: Input point cloud is empty!" << std::endl;
-        //     return;
-        // }
 
         // Step 2: Fit ground plane using RANSAC
         pcl::ModelCoefficients::Ptr plane_coefficients = fitGroundPlane(ground_points);
@@ -194,20 +190,17 @@ private:
     Eigen::Vector3f vector1(point2.x - point1.x, point2.y - point1.y, point2.z - point1.z);
     Eigen::Vector3f vector2(point3.x - point2.x, point3.y - point2.y, point3.z - point2.z);
 
-    // Compute the dot product for angle comparison between vector1 and vector2
-    float cos_angle = vector1.dot(vector2) / (vector1.norm() * vector2.norm());
+    // Compute the angle between vector1 and vector2 in radians
+    float angle_v1_v2 = std::acos(vector1.dot(vector2) / (vector1.norm() * vector2.norm()));
 
     // Normal to the XY plane
-    Eigen::Vector3f xy_plane_normal(0, 0, 1);
+    Eigen::Vector3f vector_xy(point2.x - point1.x, point2.y - point1.y, 0);
 
     // Compute angle between vector1 and the XY plane (angle with Z-axis normal)
-    float angle_with_xy_plane = std::acos(vector1.dot(xy_plane_normal) / vector1.norm()); // Angle in radians
-
-    // Ground tolerance in radians (e.g., ~5 degrees = 0.087 radians)
-    float angle_tolerance = 0.087; // Adjust ground_tolerance for radians
+    float angle_v1_xy = std::acos(vector1.dot(vector_xy) / vector1.norm() * vector_xy.norm()); // Angle in radians
 
     // Check if the vectors lie on a flat surface and the angle with the XY plane is small
-    return std::fabs(cos_angle - 1.0) < ground_tolerance && std::fabs(angle_with_xy_plane) < angle_tolerance;
+    return std::fabs(angle_v1_v2) < ground_tolerance_ && std::fabs(angle_v1_xy) < ground_elevation_;
 }
 
     // Step 1: Estimate ground points using dot product (simulated LiDAR saves points by rings)
@@ -323,7 +316,7 @@ private:
             float distance = pointToPlaneDistance(point, coefficients);
 
             // Check if the point is above the threshold distance from the plane
-            if (distance > ground_threshold)
+            if (distance > ground_threshold_)
             {
                 filtered_cloud->points.push_back(point); // Keep non-ground points
             }
@@ -336,8 +329,8 @@ private:
         return filtered_cloud;
     }
 
-    float ground_tolerance;
-    float ground_threshold;
+    float ground_elevation_, ground_tolerance_, ground_threshold_;
+    bool simulation_;
 };
 
 #endif // POINT_CLOUD_PROCESSOR_HPP_

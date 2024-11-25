@@ -8,7 +8,7 @@ class VelocityController
 {
 public:
     VelocityController(
-        double stop_thresh, double slow_thresh, double obstacle_zone_y
+        double stop_thresh, double slow_thresh, double obstacle_zone_y,
         double linear_vel, double angular_vel)
         : stop_threshold_(stop_thresh), slow_threshold_(slow_thresh), obstacle_zone_y_(obstacle_zone_y),
         linear_vel_param_(linear_vel), angular_vel_param_(angular_vel) {}
@@ -22,7 +22,7 @@ public:
         double linear_vel = 0.0;
         double angular_vel = 0.0;
 
-        if (nearestPointDistance < 1.5) {}
+        if (nearestPointDistance < 1.1) {}
         else if (nearestPointDistance < stop_threshold_ && nearestPoint.x > 0 && abs(nearestPoint.y) < obstacle_zone_y_)
         {
             // Stop and turn
@@ -37,7 +37,7 @@ public:
         else
         {
             // No critical obstacle, proceed with default parameters
-            linear_vel = linear_vel_param;
+            linear_vel = linear_vel_param_;
         }
 
         // Set velocities in the Twist message

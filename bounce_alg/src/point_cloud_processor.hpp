@@ -18,10 +18,10 @@ class PointCloudProcessor
 {
 public:
     PointCloudProcessor(
-        float ground_elevation, float ground_tolerance, float ground_threshold
+        float ground_elevation, float ground_tolerance, float ground_threshold,
         bool simulation)
-        : ground_elevation_(ground_elevation), ground_tolerance_(ground_tolerance), ground_threshold_(ground_threshold), 
-        simulation_(simulation) {}
+        : ground_elevation_(ground_elevation), ground_tolerance_(ground_tolerance), ground_threshold_(ground_threshold),
+          simulation_(simulation) {}
 
     // Function to save cloud points in a file
     void saveCloudPointInFile(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const rclcpp::Logger &logger)
@@ -102,13 +102,10 @@ public:
         {
             auto points_ring = input_cloud->size();
 
-            for (auto h = 0; h < points_ring; h++)
+            for (auto i = 0; i < rings; i++)
             {
-                for (auto i = 0; i < rings; i++)
-                {
-                    pcl::PointXYZ point1 = input_cloud->points[i];
-                    first_16_points->points.push_back(point1);
-                }
+                pcl::PointXYZ point1 = input_cloud->points[i];
+                first_16_points->points.push_back(point1);
             }
         }
 
@@ -117,23 +114,24 @@ public:
 
     // Function to transform coordinate system from LiDAR into robot
     pcl::PointCloud<pcl::PointXYZ>::Ptr translatePointCloud(
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-    float x_translation, float y_translation, float z_translation) {
+        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,
+        float x_translation, float y_translation, float z_translation)
+    {
 
-    // Create the transformation matrix
-    Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
-    transformation(0, 3) = x_translation; // Translation along X
-    transformation(1, 3) = y_translation; // Translation along Y
-    transformation(2, 3) = z_translation; // Translation along Z
+        // Create the transformation matrix
+        Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
+        transformation(0, 3) = x_translation; // Translation along X
+        transformation(1, 3) = y_translation; // Translation along Y
+        transformation(2, 3) = z_translation; // Translation along Z
 
-    // Create a new point cloud to store the result
-    pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+        // Create a new point cloud to store the result
+        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
-    // Apply the transformation
-    pcl::transformPointCloud(*cloud, *transformed_cloud, transformation);
+        // Apply the transformation
+        pcl::transformPointCloud(*cloud, *transformed_cloud, transformation);
 
-    return transformed_cloud;
-}
+        return transformed_cloud;
+    }
 
     // Function to filter points above the robot based on Z coordinate
     pcl::PointCloud<pcl::PointXYZ>::Ptr filterPointsAbove(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud, float height_tolerance = 0.2)
@@ -163,7 +161,7 @@ public:
     {
         // Step 1: Estimate initial ground points using dot product analysis
         pcl::PointCloud<pcl::PointXYZ>::Ptr ground_points;
-        
+
         if (simulation_)
         {
             ground_points = estimateGroundPoints_sim(input_cloud);
@@ -185,23 +183,23 @@ public:
 private:
     // Helper function to compute dot product and check if points form a ground plane
     bool isGroundPoint(const pcl::PointXYZ &point1, const pcl::PointXYZ &point2, const pcl::PointXYZ &point3)
-{
-    // Compute the first vector
-    Eigen::Vector3f vector1(point2.x - point1.x, point2.y - point1.y, point2.z - point1.z);
-    Eigen::Vector3f vector2(point3.x - point2.x, point3.y - point2.y, point3.z - point2.z);
+    {
+        // Compute the first vector
+        Eigen::Vector3f vector1(point2.x - point1.x, point2.y - point1.y, point2.z - point1.z);
+        Eigen::Vector3f vector2(point3.x - point2.x, point3.y - point2.y, point3.z - point2.z);
 
-    // Compute the angle between vector1 and vector2 in radians
-    float angle_v1_v2 = std::acos(vector1.dot(vector2) / (vector1.norm() * vector2.norm()));
+        // Compute the angle between vector1 and vector2 in radians
+        float angle_v1_v2 = std::acos(vector1.dot(vector2) / (vector1.norm() * vector2.norm()));
 
-    // Normal to the XY plane
-    Eigen::Vector3f vector_xy(point2.x - point1.x, point2.y - point1.y, 0);
+        // Normal to the Z-axis
+        Eigen::Vector3f vector_z(0.0, 0.0, 1.0); // Z-axis normal
 
-    // Compute angle between vector1 and the XY plane (angle with Z-axis normal)
-    float angle_v1_xy = std::acos(vector1.dot(vector_xy) / vector1.norm() * vector_xy.norm()); // Angle in radians
+        // Compute angle between vector1 and the XY plane (angle with Z-axis normal)
+        float angle_v1_z = std::acos(vector1.dot(vector_z) / vector1.norm()); // Angle in radians
 
-    // Check if the vectors lie on a flat surface and the angle with the XY plane is small
-    return std::fabs(angle_v1_v2) < ground_tolerance_ && std::fabs(angle_v1_xy) < ground_elevation_;
-}
+        // Check if the vectors lie on a flat surface and the angle with the XY plane is small
+        return std::fabs(angle_v1_v2) < ground_tolerance_ && std::fabs(angle_v1_z - M_PI_2) < ground_elevation_; //std::fabs(angle_v1_z - M_PI_2) < ground_elevation_;
+    }
 
     // Step 1: Estimate ground points using dot product (simulated LiDAR saves points by rings)
     pcl::PointCloud<pcl::PointXYZ>::Ptr estimateGroundPoints_sim(const pcl::PointCloud<pcl::PointXYZ>::Ptr &input_cloud)
@@ -248,7 +246,7 @@ private:
 
         for (auto h = 0; h < points_ring; h++)
         {
-            for (auto v = 0; v < rings - 2; ++v) // Loop through each vertical column of points
+            for (auto v = 0; v < rings - 2; v++) // Loop through each vertical column of points
             {
                 // Fetch the points in the vertical scan for each horizontal angle
                 pcl::PointXYZ point1 = input_cloud->points[h + v];

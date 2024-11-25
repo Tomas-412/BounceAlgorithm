@@ -38,9 +38,10 @@ public:
 
     this->declare_parameter<double>("linear_vel"); // cmd_vel robot cotrol
     this->declare_parameter<double>("angular_vel");
-  
-    this->declare_parameter<float>("ground_tolerance"); // filter ground plane parameters
-    this->declare_parameter<float>("ground_treshold");
+
+    this->declare_parameter<float>("ground_elevation"); // filter ground plane parameters
+    this->declare_parameter<float>("ground_tolerance"); 
+    this->declare_parameter<float>("ground_threshold");
     
     this->declare_parameter<float>("slow_threshold"); // obstacle avoidance parameters
     this->declare_parameter<float>("stop_threshold");
@@ -59,7 +60,7 @@ public:
     // Initialize the PointCloudProcessor with relevant parameters
     // ---------------------------------------------------------------------------------------------------------------
 
-    float ground_elevation, ground_tolerance, float ground_threshold;
+    float ground_elevation, ground_tolerance, ground_threshold;
     
     this->get_parameter("ground_elevation", ground_elevation);
     this->get_parameter("ground_tolerance", ground_tolerance);
@@ -80,7 +81,7 @@ public:
     this->get_parameter("stop_threshold", stop_thresh);
     this->get_parameter("obstacle_zone_y", obst_zone_y);
 
-      double linear_vel, angular_vel;
+    double linear_vel, angular_vel;
     this->get_parameter("linear_vel", linear_vel);
     this->get_parameter("angular_vel", angular_vel);
     
@@ -165,11 +166,11 @@ private:
 
     
     // Translate the LiDAR point cloud
-    if (!simulation_)
-    {
-      // Translate the point cloud by (0.2, 0.0, -0.2)
-      cloud = point_cloud_processor_->translatePointCloud(cloud, translation_[0], translation_[1], translation_[2]);
-    }
+    // if (!simulation_)
+    // {
+    //   // Translate the point cloud by (0.2, 0.0, -0.2)
+    //   cloud = point_cloud_processor_->translatePointCloud(cloud, translation_[0], translation_[1], translation_[2]);
+    // }
     
 
     // Save Cloud point in a file if needed
@@ -181,8 +182,8 @@ private:
 
     // Filter points above the robot so it can pass under an obstacle and substracted the translation parameter for the real robot
     float above_filtration;
-    if (!simulation_) {above_filtration = above_filtration_ - translation_[2];}
-    filtered_cloud = point_cloud_processor_->filterPointsAbove(filtered_cloud, above_filtration); 
+    // if (!simulation_) {above_filtration = above_filtration_ - translation_[2];}
+    filtered_cloud = point_cloud_processor_->filterPointsAbove(filtered_cloud, above_filtration_); 
 
     // Convert the filtered cloud to a ROS message
     sensor_msgs::msg::PointCloud2 outputCloud_msg;

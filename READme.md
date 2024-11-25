@@ -21,6 +21,10 @@ This package implements a custom obstacle avoidance algorithm using point cloud 
 ```  
 colcon build  
 ```  
+Debuging in VS code
+``` 
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug
+``` 
 
 ### Source the Setup:  
 ```  

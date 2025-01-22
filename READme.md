@@ -1,6 +1,6 @@
 #This repository does NOT include steps to be followed for a simulation, VLP 3D LiDAR and a ClearPath robot control, please take a look at two other repositories:
 - Simulation
-https://github.com/Tomas-412/clearpath_sim_ws
+https://github.com/Tomas-412/clearpath_sim_ws, 
 https://github.com/Tomas-412/clearpath
 - VLP 3D LiDAR
 https://github.com/Freddy220103/velodyne16-ros2

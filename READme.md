@@ -1,8 +1,8 @@
-# Alert!! Use the code with robot only at your own risk. First off all make sure on 100%, there is no error in the simulation. I can not guarantee it will work straight out of the box without any changes even though the components are exactly the same as mine.
+- **Alert!! Use the code with robot only at your own risk. First off all make sure on 100%, there is no error in the simulation. I can not guarantee it will work straight out of the box without any changes even though the components are exactly the same as mine.**
 
-## As soon as my thesis will be uploaded I will share a link here where it is explained into every single detail. This code is open source so feel free to do any changes to it and share/discuss them with me.
+- **As soon as my thesis will be uploaded I will share a link here where it is explained into every single detail. This code is open source so feel free to do any changes to it and share/discuss them with me.**
 
-## This repository does NOT include steps to be followed for a simulation, VLP 3D LiDAR and a ClearPath robot control, please take a look at two other repositories:
+**This repository does NOT include steps to be followed for a simulation, VLP 3D LiDAR and a ClearPath robot control, please take a look at two other repositories:**
 - Simulation
 https://github.com/Tomas-412/clearpath_sim_ws, 
 https://github.com/Tomas-412/clearpath
